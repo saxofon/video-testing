@@ -21,13 +21,10 @@ static int pause_enabled=0;
 static int progressbar_enabled=0;
 static int recording_enabled=0;
 
-// icons
-static Image save_button;
-
 static GstElement *createPipelineVideoInput(const char *videodev, const char *channel)
 {
 	GError *error;
-	gchar *pipelineString = g_strdup_printf("v4l2src device=%s ! intervideosink channel=%s",
+	gchar *pipelineString = g_strdup_printf("v4l2src device=%s ! clockoverlay time-format=\"%%Y-%%m-%%d  %%T\" ! intervideosink channel=%s",
 		videodev, channel);
 	GstElement *pipeline = gst_parse_launch(pipelineString, &error);
 
@@ -44,7 +41,7 @@ static GstElement *createPipelineVideoInput(const char *videodev, const char *ch
 static GstElement *createPipelineVideoApp(const char *channel)
 {
 	GError *error;
-	gchar *pipelineString = g_strdup_printf("intervideosrc channel=%s ! queue ! videoconvert ! appsink name=output caps=video/x-raw,format=RGBA,pixel-aspect-ratio=1/1",
+	gchar *pipelineString = g_strdup_printf("intervideosrc channel=%s ! queue ! videoconvert ! video/x-raw, format=RGBA ! appsink name=output max-buffers=2 drop=true",
 		channel);
 	GstElement *pipeline = gst_parse_launch(pipelineString, &error);
 
@@ -116,11 +113,6 @@ static void exit_app(void)
 	CloseWindow();
 }
 
-static void loadIcons(void)
-{
-}
-
-
 static void drawMenu(void)
 {
 	Color color;
@@ -162,8 +154,6 @@ int main(int argc, char *argv[])
 
 	raylibInit();
 
-	loadIcons();
-
 	gst_element_set_state(pVideoInput, GST_STATE_PLAYING);
 	gst_element_set_state(pVideoApp, GST_STATE_PLAYING);
 
@@ -191,7 +181,6 @@ int main(int argc, char *argv[])
 			case KEY_R:
 				if (recording_enabled) {
 					recording_enabled = 0;
-					gst_element_set_state(pVideoRecording, GST_STATE_PAUSED);
 					gst_element_send_event(pVideoRecording, gst_event_new_eos());
 				} else {
 					recording_enabled = 1;
@@ -228,20 +217,24 @@ int main(int argc, char *argv[])
 
 			gst_structure_get_int(s, "width", &frameWidth);
 			gst_structure_get_int(s, "height", &frameHeight);
+			printf("width %d, height %d\n", frameWidth,  frameHeight);
 
 			renderTexture = LoadRenderTexture(frameWidth, frameHeight);
 		}
 		if (renderScale < 0 && frameWidth > 0) {
 			screenWidth = GetScreenWidth();
 			screenHeight = GetScreenHeight();
+			printf("screenWidth %d, screenHeight %d\n", screenWidth,  screenHeight);
 
 			renderWidth = screenWidth;
 			renderHeight = (int)(screenWidth * 1.0f * frameHeight / frameWidth);
+			printf("renderWidth %d, renderHeight %d\n", screenWidth,  screenHeight);
 
 			if (renderHeight > screenHeight) {
 				renderHeight = screenHeight;
 				renderWidth = (int)(screenHeight * 1.0f * frameWidth / frameHeight);
 			}
+			printf("renderWidth %d, renderHeight %d\n", screenWidth,  screenHeight);
 
 			renderScale = 1.0f * renderWidth / frameWidth;
 		}
@@ -261,8 +254,6 @@ int main(int argc, char *argv[])
 		vector.y = (screenHeight - renderHeight) / 2;
 
 		DrawTextureEx(renderTexture.texture, vector, 0, 1.0f * renderWidth / frameWidth, WHITE);
-
-		// overlay menu
 		drawMenu();
 
 		// overlay progressbar, during playback only
@@ -271,14 +262,11 @@ int main(int argc, char *argv[])
 			DrawRectangle(5, screenHeight - 15, screenWidth - 10, 10, color);
 			color = Fade(BLUE, 0.5f);
 			DrawRectangle(5, screenHeight - 15, (int)((screenWidth - 10) * (1.0f * position / duration)), 10, color);
-			vector.y = screenHeight - 40;
-		} else {
-			vector.y = screenHeight - 20;
 		}
-		vector.x = 5;
-		sprintf(str, "Time: %" GST_TIME_FORMAT, GST_TIME_ARGS(position));
-		DrawTextEx(niceFont, str, vector, 20, 1, GRAY);
-
+		//vector.y = screenHeight - 40;
+		//vector.x = 5;
+		//sprintf(str, "Time: %" GST_TIME_FORMAT, GST_TIME_ARGS(position));
+		//DrawTextEx(niceFont, str, vector, 20, 1, GRAY);
 
 		EndDrawing();
 	}
