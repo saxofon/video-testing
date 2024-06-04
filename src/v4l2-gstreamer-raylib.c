@@ -108,6 +108,8 @@ static void exit_app(void)
 
 	gst_deinit();
 
+	exit(0);
+
 	UnloadRenderTexture(renderTexture);
 
 	CloseWindow();
