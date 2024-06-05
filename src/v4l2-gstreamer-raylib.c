@@ -136,8 +136,6 @@ int main(int argc, char *argv[])
 		gst_element_query_duration(pVideoInput, GST_FORMAT_TIME, &duration);
 
 		key_pressed = GetKeyPressed();
-		if (key_pressed)
-			printf("key pressed %d\n", key_pressed);
 
 		switch (key_pressed) {
 			case KEY_P:
@@ -161,6 +159,8 @@ int main(int argc, char *argv[])
 					gst_element_set_state(pVideoRecording, GST_STATE_PLAYING);
 				}
 				break;
+			default:
+				printf("key pressed %d\n", key_pressed);
 		}
 
 		if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
