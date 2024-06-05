@@ -58,7 +58,7 @@ static GstElement *createPipelineVideoApp(const char *channel)
 static GstElement *createPipelineVideoRecording(const char *channel, const char *filename)
 {
 	GError *error;
-	gchar *pipelineString = g_strdup_printf("intervideosrc channel=%s ! queue ! videoconvert ! x264enc ! h264parse ! queue ! qtmux ! filesink location=%s",
+	gchar *pipelineString = g_strdup_printf("intervideosrc channel=%s ! queue ! videoconvert ! x264enc ! h264parse ! queue ! mp4mux ! filesink location=%s",
 		channel, filename);
 	GstElement *pipeline = gst_parse_launch(pipelineString, &error);
 
@@ -138,6 +138,8 @@ int main(int argc, char *argv[])
 		key_pressed = GetKeyPressed();
 
 		switch (key_pressed) {
+			case 0:
+				break;
 			case KEY_P:
 				gst_element_get_state(pVideoApp, &state, NULL, 1);
 
