@@ -141,14 +141,14 @@ int main(int argc, char *argv[])
 
 		switch (key_pressed) {
 			case KEY_P:
-				gst_element_get_state(pVideoInput, &state, NULL, 1);
+				gst_element_get_state(pVideoApp, &state, NULL, 1);
 
 				if (state == GST_STATE_PLAYING) {
 					pause_enabled = 1;
-					gst_element_set_state(pVideoInput, GST_STATE_PAUSED);
+					gst_element_set_state(pVideoApp, GST_STATE_PAUSED);
 				} else {
 					pause_enabled = 0;
-					gst_element_set_state(pVideoInput, GST_STATE_PLAYING);
+					gst_element_set_state(pVideoApp, GST_STATE_PLAYING);
 				}
 				break;
 
