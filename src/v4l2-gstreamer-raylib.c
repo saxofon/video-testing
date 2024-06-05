@@ -92,29 +92,6 @@ static void raylibInit(void)
 	niceFont = LoadFontEx("/usr/share/fonts/open-sans/OpenSans-Bold.ttf", 20, NULL, 0);
 }
 
-static void exit_app(void)
-{
-	gst_element_send_event(pVideoRecording, gst_event_new_eos());
-
-	sleep(1);
-
-	gst_element_set_state(pVideoRecording, GST_STATE_NULL);
-	gst_element_set_state(pVideoApp, GST_STATE_NULL);
-	gst_element_set_state(pVideoInput, GST_STATE_NULL);
-
-	gst_object_unref(pVideoRecording);
-	gst_object_unref(pVideoApp);
-	gst_object_unref(pVideoInput);
-
-	gst_deinit();
-
-	exit(0);
-
-	UnloadRenderTexture(renderTexture);
-
-	CloseWindow();
-}
-
 static void drawMenu(void)
 {
 	Color color;
@@ -188,10 +165,6 @@ int main(int argc, char *argv[])
 					recording_enabled = 1;
 					gst_element_set_state(pVideoRecording, GST_STATE_PLAYING);
 				}
-				break;
-
-			case KEY_Q:
-				exit_app();
 				break;
 		}
 
