@@ -24,7 +24,7 @@ static int recording_enabled=0;
 static GstElement *createPipelineVideoInput(const char *videodev, const char *channel)
 {
 	GError *error;
-	gchar *pipelineString = g_strdup_printf("v4l2src device=%s ! clockoverlay time-format=\"%%Y-%%m-%%d  %%T\" ! intervideosink channel=%s",
+	gchar *pipelineString = g_strdup_printf("v4l2src device=%s ! clockoverlay time-format=\"%%Y-%%m-%%d  %%T\" halignment=center valignment=bottom ! intervideosink channel=%s",
 		videodev, channel);
 	GstElement *pipeline = gst_parse_launch(pipelineString, &error);
 
@@ -68,11 +68,6 @@ static GstElement *createPipelineVideoRecording(const char *channel, const char 
 		exit(-1);
 	}
 
-	//sinkRecording = gst_element_get_static_pad(filesink, "sink");
-	//gst_pad_add_probe(sinkRecording, GstPadProbeType(GST_PAD_PROBE_TYPE_BLOCK | GST_PAD_PROBE_TYPE_EVENT_DOWNSTREAM), cb_event_eos, pVideoRecording, NULL)
-
-	//busRecording = gst_pipeline_get_bus(GST_PIPELINE(pVideoRecording));
-	//gst_bus_add_signal_watch(bus);
 	g_free(pipelineString);
 	return pipeline;
 }
