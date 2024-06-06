@@ -1,0 +1,3 @@
+Icons fetched from https://www.flaticon.com/free-icons
+
+Font fetch from Fedora open fonts

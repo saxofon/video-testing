@@ -1,25 +1,32 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/time.h>
 #include <gst/gst.h>
 #include <gst/app/gstappsink.h>
 #include <raylib.h>
 
-static int screenWidth = 800;
-static int screenHeight = 450;
-static char windowTitle[] = "Nifty video/GUI demo using v4l2, gstreamer and raylib";
+#include "resources.h"
+
 static GstElement *pVideoInput;
 static GstElement *pVideoApp;
 static GstElement *pVideoRecording;
 static GstElement *sink;
 static GstBus *busRecording;
 static GstPad *sinkRecording;
-static Font niceFont;
 static RenderTexture2D renderTexture;
 
-static int pause_enabled=0;
-static int progressbar_enabled=0;
-static int recording_enabled=0;
+static int monitorWidth = 0;
+static int monitorHeight = 0;
+static int screenWidth = 1280;
+static int screenHeight = 720;
+static char windowTitle[] = "Nifty video/GUI demo using v4l2, gstreamer and raylib";
+static int pausing = 0;
+static int playback = 0;
+static int recording = 0;
+static gint64 position;
+static gint64 duration;
+static struct timeval timeofday;
 
 static GstElement *createPipelineVideoInput(const char *videodev, const char *channel)
 {
@@ -84,33 +91,69 @@ static void raylibInit(void)
 {
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 	InitWindow(screenWidth, screenHeight, windowTitle);
-	niceFont = LoadFontEx("/usr/share/fonts/open-sans/OpenSans-Bold.ttf", 20, NULL, 0);
+	monitorWidth = GetMonitorWidth(0);
+	monitorHeight = GetMonitorHeight(0);
+	//printf("monitorWidth %d, monitorHeight %d\n", monitorWidth, monitorHeight);
+	loadResources();
+	SetTargetFPS(60);
 }
 
-static void drawMenu(void)
+static void textButton(Font font, const char *str, Vector2 vector, float fontSize, float spacing, Color colorText, Color colorButton)
+{
+	Vector2 txtbox;
+	txtbox = MeasureTextEx(font, str, fontSize, spacing);
+	DrawRectangle(vector.x, vector.y, txtbox.x+10, txtbox.y+10, colorButton);
+	vector.x += 5;
+	vector.y += 5;
+	DrawTextEx(font, str, vector, fontSize, spacing, colorText);
+}
+
+static void drawGUI_with_icons(void)
 {
 	Color color;
 	Vector2 vector;
+	int show_recording;
 
-	color = Fade(WHITE, 0.3f);
-	DrawRectangle(5, 5, 100, 80, color);
-	vector.x = 15;
-	vector.y = 15;
-	color = Fade(GRAY, 0.4f);
-	if (pause_enabled)
-		color.a = 255;
-	DrawTextEx(niceFont, "(P)ause", vector, 20, 1, color);
-	vector.y = 30;
-	color = Fade(RED, 0.4f);
-	if (recording_enabled)
-		color.a = 255;
-	DrawTextEx(niceFont, "(R)ecord", vector, 20, 1, color);
+	vector.x = 10;
+	vector.y = 25;
+	color = Fade(WHITE, 0.5f);
+	if (pausing)
+		DrawTexture(icon_pause, vector.x, vector.y, color);
+	else
+		DrawTexture(icon_play, vector.x, vector.y, color);
+
+	if (recording) {
+		vector.x = screenWidth/2;
+		vector.y = screenHeight-50;
+		if (!(timeofday.tv_sec%2)) {
+			show_recording = !show_recording;
+		}
+		if (show_recording)
+			DrawTexture(icon_recording, vector.x, vector.y, WHITE);
+	}
 }
 
+static void drawGUI_with_text(void)
+{
+	Color colorButton;
+	Vector2 vector;
+
+	colorButton = Fade(WHITE, 0.5f);
+
+	vector.x = 50;
+	vector.y = 30;
+	textButton(niceFont, "(P)ause ", vector, 20, 1, BLUE, colorButton);
+
+	vector.y = 70;
+	if (recording) {
+		textButton(niceFont, "Recording", vector, 20, 1, BLUE, colorButton);
+	} else {
+		textButton(niceFont, "(R)ecord", vector, 20, 1, BLUE, colorButton);
+	}
+}
 
 int main(int argc, char *argv[])
 {
-	gint64 duration, position;
 	int frameWidth = 0, frameHeight = 0;
 	int renderWidth = 0, renderHeight = 0;
 	float renderScale = -1.0f;
@@ -134,33 +177,39 @@ int main(int argc, char *argv[])
 	while (!WindowShouldClose()) {
 		gst_element_query_position(pVideoInput, GST_FORMAT_TIME, &position);
 		gst_element_query_duration(pVideoInput, GST_FORMAT_TIME, &duration);
-
+		gettimeofday(&timeofday, NULL);
+		
 		key_pressed = GetKeyPressed();
 
 		switch (key_pressed) {
 			case 0:
 				break;
-			case KEY_P:
+
+			case KEY_P: // Pause
 				gst_element_get_state(pVideoApp, &state, NULL, 1);
 
 				if (state == GST_STATE_PLAYING) {
-					pause_enabled = 1;
+					pausing = 1;
 					gst_element_set_state(pVideoApp, GST_STATE_PAUSED);
 				} else {
-					pause_enabled = 0;
+					pausing = 0;
 					gst_element_set_state(pVideoApp, GST_STATE_PLAYING);
 				}
 				break;
 
-			case KEY_R:
-				if (recording_enabled) {
-					recording_enabled = 0;
+			case KEY_R: // Record
+				if (recording) {
+					recording = 0;
 					gst_element_send_event(pVideoRecording, gst_event_new_eos());
 				} else {
-					recording_enabled = 1;
+					recording = 1;
 					gst_element_set_state(pVideoRecording, GST_STATE_PLAYING);
 				}
 				break;
+
+			case KEY_S: // Stream
+				break;
+
 			default:
 				printf("key pressed %d\n", key_pressed);
 		}
@@ -189,24 +238,23 @@ int main(int argc, char *argv[])
 
 			gst_structure_get_int(s, "width", &frameWidth);
 			gst_structure_get_int(s, "height", &frameHeight);
-			printf("width %d, height %d\n", frameWidth,  frameHeight);
+			//printf("frameWidth %d, frameHeight %d\n", frameWidth, frameHeight);
 
 			renderTexture = LoadRenderTexture(frameWidth, frameHeight);
 		}
 		if (renderScale < 0 && frameWidth > 0) {
 			screenWidth = GetScreenWidth();
 			screenHeight = GetScreenHeight();
-			printf("screenWidth %d, screenHeight %d\n", screenWidth,  screenHeight);
+			//printf("screenWidth %d, screenHeight %d\n", screenWidth, screenHeight);
 
 			renderWidth = screenWidth;
 			renderHeight = (int)(screenWidth * 1.0f * frameHeight / frameWidth);
-			printf("renderWidth %d, renderHeight %d\n", screenWidth,  screenHeight);
 
 			if (renderHeight > screenHeight) {
 				renderHeight = screenHeight;
 				renderWidth = (int)(screenHeight * 1.0f * frameWidth / frameHeight);
 			}
-			printf("renderWidth %d, renderHeight %d\n", screenWidth,  screenHeight);
+			//printf("renderWidth %d, renderHeight %d\n", renderWidth, renderHeight);
 
 			renderScale = 1.0f * renderWidth / frameWidth;
 		}
@@ -226,19 +274,22 @@ int main(int argc, char *argv[])
 		vector.y = (screenHeight - renderHeight) / 2;
 
 		DrawTextureEx(renderTexture.texture, vector, 0, 1.0f * renderWidth / frameWidth, WHITE);
-		drawMenu();
+
+		drawGUI_with_icons();
+		drawGUI_with_text();
+
 
 		// overlay progressbar, during playback only
-		if (progressbar_enabled) {
+		if (playback) {
 			color = Fade(WHITE, 0.5f);
 			DrawRectangle(5, screenHeight - 15, screenWidth - 10, 10, color);
 			color = Fade(BLUE, 0.5f);
 			DrawRectangle(5, screenHeight - 15, (int)((screenWidth - 10) * (1.0f * position / duration)), 10, color);
+			vector.y = screenHeight - 40;
+			vector.x = 5;
+			sprintf(str, "Time: %" GST_TIME_FORMAT, GST_TIME_ARGS(position));
+			DrawTextEx(niceFont, str, vector, 20, 1, GRAY);
 		}
-		//vector.y = screenHeight - 40;
-		//vector.x = 5;
-		//sprintf(str, "Time: %" GST_TIME_FORMAT, GST_TIME_ARGS(position));
-		//DrawTextEx(niceFont, str, vector, 20, 1, GRAY);
 
 		EndDrawing();
 	}
