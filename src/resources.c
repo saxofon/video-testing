@@ -39,7 +39,6 @@ static void loadIcons(void)
 		iw = &icon_worklist[i];
 		if (!(iw->image))
 			break;
-		printf("Loading %d\n", iw->image);
 		image = LoadImageFromMemory(".png", iw->image, *(iw->size));
 		ImageResize(&image, 40, 40);
 		*(iw->texture) = LoadTextureFromImage(image);

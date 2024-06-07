@@ -28,10 +28,18 @@ static gint64 position;
 static gint64 duration;
 static struct timeval timeofday;
 
+//#define WEBCAM_LAPTOP
+#define WEBCAM_PLEXGEAR
+
 static GstElement *createPipelineVideoInput(const char *videodev, const char *channel)
 {
 	GError *error;
+
+#ifdef WEBCAM_LAPTOP
 	gchar *pipelineString = g_strdup_printf("v4l2src device=%s ! clockoverlay time-format=\"%%Y-%%m-%%d  %%T\" halignment=center valignment=bottom ! intervideosink channel=%s",
+#elif defined(WEBCAM_PLEXGEAR)
+	gchar *pipelineString = g_strdup_printf("v4l2src device=%s ! decodebin ! clockoverlay time-format=\"%%Y-%%m-%%d  %%T\" halignment=center valignment=bottom ! intervideosink channel=%s",
+#endif
 		videodev, channel);
 	GstElement *pipeline = gst_parse_launch(pipelineString, &error);
 
@@ -48,7 +56,11 @@ static GstElement *createPipelineVideoInput(const char *videodev, const char *ch
 static GstElement *createPipelineVideoApp(const char *channel)
 {
 	GError *error;
+#ifdef WEBCAM_LAPTOP
 	gchar *pipelineString = g_strdup_printf("intervideosrc channel=%s ! queue ! videoconvert ! video/x-raw,width=640,height=480,framerate=30/1,format=RGBA ! appsink name=output max-buffers=2 drop=true",
+#elif defined(WEBCAM_PLEXGEAR)
+	gchar *pipelineString = g_strdup_printf("intervideosrc channel=%s ! queue ! videoconvert ! video/x-raw,width=1920,height=1080,framerate=30/1,format=RGBA ! appsink name=output max-buffers=2 drop=true",
+#endif
 		channel);
 	GstElement *pipeline = gst_parse_launch(pipelineString, &error);
 
@@ -89,6 +101,7 @@ static void gstInit(const char *videodev, const char *recordfile)
 
 static void raylibInit(void)
 {
+	SetTraceLogLevel(LOG_ERROR);
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 	InitWindow(screenWidth, screenHeight, windowTitle);
 	monitorWidth = GetMonitorWidth(0);
