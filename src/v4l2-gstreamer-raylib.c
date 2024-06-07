@@ -48,7 +48,7 @@ static GstElement *createPipelineVideoInput(const char *videodev, const char *ch
 static GstElement *createPipelineVideoApp(const char *channel)
 {
 	GError *error;
-	gchar *pipelineString = g_strdup_printf("intervideosrc channel=%s ! queue ! videoconvert ! video/x-raw, format=RGBA ! appsink name=output max-buffers=2 drop=true",
+	gchar *pipelineString = g_strdup_printf("intervideosrc channel=%s ! queue ! videoconvert ! video/x-raw,width=640,height=480,framerate=30/1,format=RGBA ! appsink name=output max-buffers=2 drop=true",
 		channel);
 	GstElement *pipeline = gst_parse_launch(pipelineString, &error);
 
