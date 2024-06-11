@@ -1,3 +1,8 @@
+/* SPDX-License-Identifier: GPL-3.0
+ 
+  Author : Per Hallsmark <per@hallsmark.se>
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

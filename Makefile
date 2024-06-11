@@ -1,3 +1,8 @@
+# SPDX-License-Identifier: GPL-3.0
+#
+# Author : Per Hallsmark <per@hallsmark.se>
+#
+
 APP=build/v4l2-gstreamer-raylib
 
 SRCS += src/v4l2-gstreamer-raylib.c

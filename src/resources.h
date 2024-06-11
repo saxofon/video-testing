@@ -1,3 +1,8 @@
+/* SPDX-License-Identifier: GPL-3.0
+ 
+  Author : Per Hallsmark <per@hallsmark.se>
+*/
+
 #ifndef __RESOURCES_H__
 #define __RESOURCES_H__
 

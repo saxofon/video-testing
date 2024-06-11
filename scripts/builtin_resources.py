@@ -1,5 +1,10 @@
 #!/bin/env python3
 
+# SPDX-License-Identifier: GPL-3.0
+#
+# Author : Per Hallsmark <per@hallsmark.se>
+#
+
 import os
 
 def collect_files_from_directories(directories):
