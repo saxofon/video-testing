@@ -21,7 +21,7 @@ all: $(APP)
 
 $(APP): $(SRCS)
 	mkdir -p build
-	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
 
 clean::
 	$(RM) $(APP)
