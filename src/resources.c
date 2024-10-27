@@ -40,7 +40,7 @@ static void loadIcons(void)
 		if (!(iw->image))
 			break;
 		image = LoadImageFromMemory(".png", iw->image, *(iw->size));
-		ImageResize(&image, 40, 40);
+		ImageResize(&image, 100, 100);
 		*(iw->texture) = LoadTextureFromImage(image);
 		UnloadImage(image);
 	}
